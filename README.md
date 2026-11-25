@@ -1,111 +1,237 @@
-# 🌫️ Urban Air Quality Assistant
+# Urban Air Quality Assistant
 
-A Streamlit web app that gives residents of Indian cities a **personalised daily action plan**
-based on local air quality and their household profile.
+A Streamlit app that generates a personalised daily action plan using
+air-quality information and household inputs.
 
-> **Milestone 1 — Demo mode.** Pollution values are synthetic sample data.
-> Live OpenAQ integration is planned for Milestone 2.
+The app supports local generation with Ollama and explicitly selected
+generation with Google Gemini. It displays exactly three validated advice
+cards in a dark-green interface.
 
----
+## Current Status
 
-## Features (Milestone 1)
+- OpenAQ integration is implemented.
+- Local plan generation has been tested successfully with Ollama.
+- Local plan generation has been tested successfully with Gemini using
+  `gemini-3.1-flash-lite`.
+- Ollama is the default provider; Gemini requires explicit selection.
+- There is no automatic fallback between providers.
+- Google Cloud Run deployment is pending.
+- Mobile-specific CSS is included, but phone behaviour has not yet been
+  verified.
 
-| Feature | Status |
+## Features
+
+- Household profile inputs for personalised suggestions.
+- A city selector containing Delhi, Bengaluru, Mumbai, Chennai, and Kolkata.
+- Live OpenAQ integration for the configured Koramangala, Bengaluru station.
+- Pollutant and unit checks for OpenAQ measurements.
+- Separate measurement and fetch timestamps.
+- Three advice cards with action descriptions and explanations.
+- Recognised action identifiers and duplicate-action checks.
+- Exposure-reduction and emission-reduction action categories.
+- Explicit Ollama or Gemini provider selection.
+- User-facing messages for data or generation failures.
+
+The city selector does not imply that verified live station coverage is
+available for every listed city. The verified station configuration described
+below is for Koramangala, Bengaluru.
+
+## Air-Quality Data and Limitations
+
+The configured OpenAQ source is:
+
+| Field | Value |
 |---|---|
-| City selector (Delhi, Bengaluru, Mumbai, Chennai, Kolkata) | ✅ |
-| Demo data mode (PM2.5 sample values, clearly labelled) | ✅ |
-| Household profile inputs | ✅ |
-| Gemini-powered personalised suggestions | ✅ |
-| Exposure vs. emission reduction labelling | ✅ |
-| Readable error messages for missing keys / API failures | ✅ |
+| Location | Koramangala, Bengaluru |
+| OpenAQ location ID | `6206921` |
+| PM2.5 sensor ID | `15203555` |
+| Parameter | `pm25` |
+| Units | Micrograms per cubic metre |
+| Provider | AirGradient |
 
----
+These measurements are single-station PM2.5 observations. They are not
+citywide measurements and are not AQI scores.
 
-## Prerequisites
+Readings can change between requests. Example values observed during testing
+are not constants and should not be treated as current conditions.
 
-- Python 3.10 or later
-- A Python virtual environment (venv or similar)
-- Two Windows environment variables set **before** launching the app:
-  - `GEMINI_API_KEY` — your Google Gemini API key
-  - `OPENAQ_API_KEY` — your OpenAQ API key (used in Milestone 2)
+Check the displayed measurement timestamp when interpreting a reading.
 
-### Setting environment variables (Windows)
+## Requirements
 
-```powershell
-# Set for the current PowerShell session only:
-$env:GEMINI_API_KEY = "your-key-here"
-$env:OPENAQ_API_KEY = "your-key-here"
+- Python 3.10 or later.
+- The packages listed in `requirements.txt`.
+- An OpenAQ API key for live OpenAQ requests.
+- For Ollama: a running local Ollama server and the configured model.
+- For Gemini: a Gemini API key and explicit Gemini provider selection.
+
+Current declared dependencies:
+
+```text
+streamlit>=1.35.0
+google-genai>=1.0.0
+requests>=2.31.0
 ```
 
-Or set them permanently via:
-**Start → Search "environment variables" → Edit the system environment variables → Environment Variables**
+## Local Setup on Windows
 
----
+### 1. Open the project folder
 
-## Setup & Launch
+Open PowerShell in the project directory.
 
-### 1. Open PowerShell and navigate to the project folder
-
-```powershell
-cd "C:\Users\Chidi\Desktop\semester 4\googleantigravity_urban_air_quality"
-```
-
-### 2. Activate your virtual environment
+### 2. Install Python dependencies
 
 ```powershell
-# If your venv is named 'venv':
-.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-### 3. Install dependencies
+Using a dedicated Python environment is recommended.
+
+### 3. Configure live OpenAQ access
+
+Set the key in the same PowerShell session used to start the app:
 
 ```powershell
-pip install -r requirements.txt
+$env:OPENAQ_API_KEY = "YOUR_OPENAQ_API_KEY"
 ```
 
-### 4. Run the app
+Replace the placeholder locally. Do not put real API keys in source files,
+screenshots, or Git commits.
+
+### 4. Select a generation provider
+
+#### Option A: Ollama - local default
+
+The current configuration uses:
+
+```text
+Model: phi3:latest
+Server: http://localhost:11434
+```
+
+Ensure Ollama is running and the model is available.
+
+To select Ollama explicitly:
 
 ```powershell
-streamlit run app.py
+$env:LLM_PROVIDER = "ollama"
 ```
 
-The app will open automatically at `http://localhost:8501`.
+#### Option B: Gemini - explicit opt-in
 
----
+```powershell
+$env:LLM_PROVIDER = "gemini"
+$env:GEMINI_MODEL = "gemini-3.1-flash-lite"
+$env:GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
+```
+
+Gemini generation with this model has been tested locally. API availability
+and quota still apply.
+
+These PowerShell assignments apply to the current session. Restart the app
+after changing environment variables.
+
+### 5. Launch the app
+
+```powershell
+python -m streamlit run app.py
+```
+
+Open the local address printed by Streamlit, complete the household inputs,
+select the intended provider, and generate a daily plan.
+
+## Runtime Configuration
+
+`config.py` contains the shared runtime settings.
+
+| Setting | Default |
+|---|---|
+| `LLM_PROVIDER` | `ollama` |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` |
+| `OLLAMA_MODEL` | `phi3:latest` |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` |
+| `OLLAMA_TIMEOUT_S` | `60` |
+
+`LLM_PROVIDER` and `GEMINI_MODEL` can be overridden through environment
+variables.
+
+Provider selection is explicit. A failed request must not silently switch
+to another provider.
 
 ## Project Structure
 
+```text
+app.py                       Streamlit interface
+config.py                    Shared runtime configuration
+actions.py                   Action definitions
+advice.py                    Advice generation and validation
+llm_ollama.py                Ollama integration
+data.py                      Demo/sample-data module
+data_openaq.py               OpenAQ integration
+history_openaq.py            Historical-data module
+requirements.txt            Python dependencies
+.gitignore                   Git exclusion rules
+README.md                    Project documentation
+
+test_gemini.py               Gemini diagnostic script
+test_history_openaq.py       Historical-data test script
+test_live_ollama.py          Local generation test script
+test_openaq_bengaluru.py      Bengaluru OpenAQ test script
+test_output_validation.py    Output-validation test script
+test_stage1_openaq.py        OpenAQ test script
 ```
-googleantigravity_urban_air_quality/
-│
-├── app.py              # Streamlit front-end
-├── advice.py           # Gemini API integration (suggestions)
-├── data.py             # Sample air quality data (swappable in Milestone 2)
-├── config.py           # Gemini model identifier & city list (single config)
-├── requirements.txt    # Python dependencies
-├── .gitignore          # Excludes .env, venv/, __pycache__/, etc.
-├── README.md           # This file
-│
-└── test_gemini.py      # Original Gemini API test (do not modify)
-```
 
----
+The presence of a test script does not mean that every test has passed in
+the current environment.
 
-## Important Notices
+## Historical Data
 
-- **Not medical advice.** All suggestions are general information only.
-- **Sample data.** PM2.5 values in Milestone 1 are illustrative placeholders,
-  not live sensor readings. They are **not** AQI scores.
-- **API keys.** Keys are read from environment variables and are never stored
-  in code or printed to logs.
+A historical-data module is included in the source code.
 
----
+The current Streamlit interface does not import or render historical trend
+charts. This is not yet a completed user-facing feature.
 
-## Roadmap
+## Validation and Limitations
 
-| Milestone | Description |
-|---|---|
-| 1 ✅ | Demo mode, Gemini suggestions, household profile |
-| 2 | Live PM2.5 data from OpenAQ API |
-| 3 | Historical trend chart |
-| 4 | (TBD) |
+- The generated plan must contain exactly three advice cards.
+- Actions are checked against recognised identifiers.
+- Duplicate action identifiers are rejected.
+- OpenAQ pollutant and measurement units are checked.
+- Personalisation depends on the household inputs supplied.
+- Model-generated wording can vary between requests.
+- Prompt instructions alone do not guarantee every household constraint;
+  independent validation does not yet cover every restriction.
+- The app provides general suggestions, not professional medical advice.
+
+## Deployment
+
+The required deployment target is Google Cloud Run.
+
+Deployment has not yet been completed or verified. No public deployment URL
+is claimed in this README.
+
+A successful local run is not evidence of a working cloud deployment.
+
+## Security
+
+- Keep API keys outside source code.
+- Supply keys through environment variables for local use.
+- Do not commit credentials or include them in screenshots.
+- Review staged changes before pushing to this public repository.
+
+## Remaining Work
+
+- Prepare and verify the Google Cloud Run deployment.
+- Test the deployed app end to end.
+- Verify the layout and interactions on a phone.
+- Add historical charts to the interface if required.
+- Extend independent validation of household-specific restrictions.
+- Publish the LinkedIn build-in-public post after verifying its claims.
+
+## Important Notice
+
+This app is an educational air-quality assistance project. Its suggestions
+are general information, not medical advice.
+
+A single monitoring station may not represent conditions at a user's home.
+Consider the measurement location and timestamp when interpreting results.
