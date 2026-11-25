@@ -68,9 +68,9 @@ Check the displayed measurement timestamp when interpreting a reading.
 Current declared dependencies:
 
 ```text
-streamlit>=1.35.0
-google-genai>=1.0.0
-requests>=2.31.0
+streamlit==1.67.0
+google-genai==3.6.1
+requests==2.32.5 
 ```
 
 ## Local Setup on Windows
