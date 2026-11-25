@@ -1,32 +1,39 @@
 # config.py
 # ---------------------------------------------------------
 # Shared runtime configuration.
-# Environment variables are read when this module is loaded.
-# Restart the app after changing environment variables.
+# Reads Streamlit secrets first, then environment variables.
+# Restart the app after changing configuration.
 # ---------------------------------------------------------
 
 import os
 
-# ── LLM provider ─────────────────────────────────────────
+try:
+    import streamlit as st
+
+    _SECRETS = st.secrets
+except Exception:
+    _SECRETS = {}
+
+
+def _get_setting(name: str, default: str = "") -> str:
+    try:
+        value = _SECRETS.get(name, "")
+    except Exception:
+        value = ""
+    if not value:
+        value = os.getenv(name, "")
+    return str(value).strip()
+
+
 # Supported values: "ollama" | "gemini"
 # Ollama remains the default unless explicitly overridden.
 # No automatic fallback between providers.
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
+LLM_PROVIDER = _get_setting("LLM_PROVIDER", "ollama").lower()
 
-# ── Ollama settings ───────────────────────────────────────
-# Requires a running Ollama server at OLLAMA_BASE_URL.
+# Ollama settings
 OLLAMA_MODEL = "phi3:latest"
 OLLAMA_BASE_URL = "http://localhost:11434"
-
-# Request timeout for a single Ollama call (seconds).
 OLLAMA_TIMEOUT_S = 60
 
-# ── Gemini settings ───────────────────────────────────────
-# Requires GEMINI_API_KEY in the environment.
-# Optional model override through GEMINI_MODEL.
-GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL", "gemini-3.1-flash-lite"
-).strip()
-
-# ── Cities available in the UI ────────────────────────────
-CITIES = ["Delhi", "Bengaluru", "Mumbai", "Chennai", "Kolkata"]
+# Gemini settings
+GEMINI_MODEL = _get_setting("GEMINI_MODEL", "gemini-3.1-flash-lite")
