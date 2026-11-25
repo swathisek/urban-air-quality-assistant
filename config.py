@@ -37,3 +37,5 @@ OLLAMA_TIMEOUT_S = 60
 
 # Gemini settings
 GEMINI_MODEL = _get_setting("GEMINI_MODEL", "gemini-3.1-flash-lite")
+# Cities available in the UI
+CITIES = ["Delhi", "Bengaluru", "Mumbai", "Chennai", "Kolkata"]
